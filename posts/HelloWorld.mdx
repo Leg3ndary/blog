@@ -1,0 +1,30 @@
+import MdxLayout from "../../components/MdxLayout";
+
+export const metadata = {
+    "title": "Hello World",
+    "description": "A simple hello world blog post.",
+    "slug": "HelloWorld",
+    "tags": ["hello-world"]
+};
+ 
+![Nature photo](https://i.imgur.com/ooYKzMJ.jpeg)
+
+Welcome to my personal blog, I will be sharing my thoughts and experiences here, enjoy!
+
+export default function MDXPage({ children, metadata, createdDate, updatedDate }) {
+    return <MdxLayout metadata={metadata} createdDate={createdDate} updatedDate={updatedDate}>{children}</MdxLayout>;
+}
+
+export async function getStaticProps() {
+    const createdDate = new Date(...metadata.created).toLocaleString();
+    const updatedDate = new Date(...metadata.updated).toLocaleString();
+
+    return {
+        props: {
+            metadata,
+            createdDate,
+            updatedDate,
+        },
+    };
+
+}
