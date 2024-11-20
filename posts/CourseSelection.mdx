@@ -1,11 +1,9 @@
-import MdxLayout from "../../components/MdxLayout";
-
-export const metadata = {
-    "title": "Course Selection",
-    "description": "Ontario High School course selection guide and tips.",
-    "slug": "courseselection",
-    "tags": ["highschool", "guide"]
-};
+---
+title: "Course Selection"
+description: "Ontario High School course selection guide and tips."
+slug: "courseselection"
+tags: "highschool, guide"
+---
 
 ![Course Selection Image](https://i.imgur.com/4NnoymA.png)
 
@@ -127,21 +125,3 @@ The teachers in my final year of study were also hands down some of the best I'v
 ## Conclusions/Final Thoughts
 
 I hope this guide was helpful to you and helped make some choices regarding your high school courses, in any case your teachers and guidance counsellors can always give you further advice and you should never be afraid to ask them.
-
-export default function MDXPage({ children, metadata, createdDate, updatedDate }) {
-    return <MdxLayout metadata={metadata} createdDate={createdDate} updatedDate={updatedDate}>{children}</MdxLayout>;
-}
-
-export async function getStaticProps() {
-    const createdDate = new Date(...metadata.created).toLocaleString();
-    const updatedDate = new Date(...metadata.updated).toLocaleString();
-
-    return {
-        props: {
-            metadata,
-            createdDate,
-            updatedDate,
-        },
-    };
-
-}

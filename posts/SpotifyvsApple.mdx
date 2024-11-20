@@ -1,11 +1,9 @@
-import MdxLayout from "../../components/MdxLayout";
-
-export const metadata = {
-    "title": "Spotify vs Apple",
-    "description": "My opinion on both platforms.",
-    "slug": "spotifyvsapple",
-    "tags": ["music", "opinion"]
-};
+---
+title: "Spotify vs Apple"
+description: "My opinion on both platforms."
+slug: "spotifyvsapple"
+tags: "music, opinion"
+---
 
 Music is in everyone's lives, however how we listen to it differs from person to person. Two popular options are Spotify and Apple Music, both coming with their on sets of pros and cons. Eventually I did come to prefer one over the other, however unfortunately this opinion might change.
 
@@ -44,21 +42,3 @@ As mentioned before I have only used Apple Music once for a little over a year, 
 ## Conclusion
 
 In the end I do prefer Spotify over Apple Music, though both have their own sets of pros and cons. However, with the recent price changes and just overall lack of improvements over the past year I feel that I might switch back to Apple Music. In any case, I hope this guide helps you make a decision on which platform to use.
-
-export default function MDXPage({ children, metadata, createdDate, updatedDate }) {
-    return <MdxLayout metadata={metadata} createdDate={createdDate} updatedDate={updatedDate}>{children}</MdxLayout>;
-}
-
-export async function getStaticProps() {
-    const createdDate = new Date(...metadata.created).toLocaleString();
-    const updatedDate = new Date(...metadata.updated).toLocaleString();
-
-    return {
-        props: {
-            metadata,
-            createdDate,
-            updatedDate,
-        },
-    };
-
-}

@@ -1,11 +1,9 @@
-import MdxLayout from "../../components/MdxLayout";
-
-export const metadata = {
-    "title": "How to Solder",
-    "description": "A guide on how to safely and quickly solder electronic components.",
-    "slug": "howtosolder",
-    "tags": ["solder", "guide"]
-};
+---
+title: "How to Solder"
+description: "A guide on how to safely and quickly solder electronic components."
+slug: "howtosolder"
+tags: "solder, guide"
+---
 
 Soldering is an extremely useful skill to have when working with electronics, it allows you to create strong and reliable connections between components while also letting you remove and resolder components if needed. In this guide, I will be explaining how I learned to solder quickly but also safely.
 
@@ -56,21 +54,3 @@ Having soldered hundreds of boards and thousands of components I have learned a 
 ## Conclusion
 
 Enjoy your time soldering, it's honestly a ton of fun and can be extremely useful. If you have any questions or need some more pointers you can always message me on [LinkedIn](https://www.linkedin.com/in/ben-zhou06/).
-
-export default function MDXPage({ children, metadata, createdDate, updatedDate }) {
-    return <MdxLayout metadata={metadata} createdDate={createdDate} updatedDate={updatedDate}>{children}</MdxLayout>;
-}
-
-export async function getStaticProps() {
-    const createdDate = new Date(...metadata.created).toLocaleString();
-    const updatedDate = new Date(...metadata.updated).toLocaleString();
-
-    return {
-        props: {
-            metadata,
-            createdDate,
-            updatedDate,
-        },
-    };
-
-}
