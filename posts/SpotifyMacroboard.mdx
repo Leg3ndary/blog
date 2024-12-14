@@ -1,0 +1,943 @@
+---
+title: An ECE1A Review
+description: A review of my ECE1A term at the University of Waterloo.
+tags: university, ece
+---
+
+<iframe
+  src="https://www.youtube.com/embed/Q0jAZzOjw8w?si=cPZXy6WQykXa3-q3"
+  title="YouTube video player"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  referrerPolicy="strict-origin-when-cross-origin"
+  allowFullScreen
+  className="w-full mx-auto my-4 border-0 rounded-lg shadow-lg aspect-video"
+/>
+
+## **Designing a Custom Spotify Macro Keyboard**
+
+Controlling music seamlessly while maintaining aesthetics and functionality can be a challenge—especially when using compact keyboards. This inspired me to create a custom **Spotify Macro Keyboard** that combines functionality, dynamic lighting, and modern design principles.
+
+With satisfying _clicky mechanical switches_, vibrant _RGB lighting_, and a smart OLED display, this keyboard became an essential quality-of-life upgrade for controlling my music.
+
+---
+
+## **Overview**
+
+The **Spotify Macro Keyboard** is a compact and modern custom macro keyboard equipped with features such as:
+
+- **Dynamic RGB Lighting** that matches album art colors.
+- **Fully Wireless Connectivity** using an ESP32 microcontroller.
+- **OLED Display** to show the current song, volume, and controls.
+
+This project combined hardware design, coding, and API integration to bring together a functional and aesthetically pleasing device.
+
+![Finished Product](https://i.imgur.com/XTMSINo.png)
+
+---
+
+## **Research**
+
+There were many things I had to research before creating this **Spotify Macro Keyboard**. I started by considering the base functions I wanted my keyboard to have:
+
+1. **Custom RGB lighting** that matches the color of the music album art.
+2. A compact **OLED display** to show the current song or what’s playing next.
+3. Full control over the music player, such as shuffle, loop, and volume, without needing to open the app.
+
+---
+
+### **Dynamic RGB Lighting**
+
+Initially, I looked at RGB LEDs available to me, but they required **three separate pins plus a ground pin**. While they could display colors, controlling them precisely and fitting them neatly into a case was challenging.
+
+After further research, I discovered the **WS2812B addressable LED strips**. These LEDs:
+
+- Offer precise, per-LED control with millisecond accuracy.
+- Require only **3.3V** power, making them compatible with the **ESP32**.
+- Use minimal pins while still enabling dynamic lighting effects like fades or waves.
+
+![Early trials and testing with the lights went well.](https://i.imgur.com/qOGpzi7.jpeg)
+
+---
+
+### **Choosing a Display**
+
+I initially considered **Liquid Crystal Displays (LCDs)**, which we used in labs. However, they required **up to 14 pins**, which was inefficient given the number of components I needed to connect.
+
+I found a better alternative in the **SSD1306 0.96-inch OLED display**, which had:
+
+- Simple I2C communication, requiring only **2 data pins**.
+- A resolution of **128x64**, sufficient to display **8 lines of data**.
+- Functions to adjust each pixel for custom graphics.
+
+This choice introduced me to the **I2C protocol**, a highly efficient way to connect multiple devices using minimal pins.
+
+---
+
+### **Mechanical Switches**
+
+For a satisfying tactile experience, I selected **blue mechanical switches**. These switches:
+
+- Provide a **noticeable click** sound, adding to the user experience.
+- Are standardized for easy integration into the PCB and for 3D-printed keycaps.
+
+I kept the design straightforward to ensure **optimal alignment** when integrating switches into the custom PCB.
+
+---
+
+### **Overcoming Memory & Storage Limits**
+
+The biggest challenge was determining the **album art color** for dynamic lighting. Processing images on an **Arduino R3** wasn’t feasible because:
+
+1. Scaled-down album art (e.g., **160x160 pixels**) still requires significant storage:
+   - Each pixel uses **3 values** (Red, Green, Blue), each with 8 bits.
+   - Total: `160x160x3 = 76,800 bytes` or ~75 KB.
+2. The **Arduino R3** has only **32 KB of flash memory**—far too small to store or process images.
+3. The Arduino lacked **Wi-Fi or Bluetooth capabilities** to fetch image data wirelessly.
+
+---
+
+### **Introducing the ESP32 Dev Module 1**
+
+To address these limitations, I chose the **ESP32 Dev Module 1**, which offered:
+
+- **2.4 GHz Wi-Fi** and full **Bluetooth support**.
+- **320 KB storage**, significantly larger than the Arduino R3.
+- A compact design, saving space and allowing for a smaller case.
+
+![ESP32 Dev Module 1.](https://i.imgur.com/GErCbf9.jpeg)
+
+However, even the ESP32 struggled to process album images directly due to storage constraints. Moving large amounts of data on such a small processor would slow down operations.
+
+---
+
+### **Creating a REST API**
+
+To overcome this, I built a **REST API** that offloaded heavy computation to a server:
+
+1. The API processes album images and calculates the **dominant color**.
+2. The ESP32 makes **GET requests** to fetch processed results.
+3. This approach reduced the average API request time from **3 seconds** to **0.2 seconds**—over **15x faster**.
+
+This solution not only solved the memory issue but also provided flexibility to add new features later.
+
+---
+
+## **Designing the Hardware**
+
+### **Custom PCB Design**
+
+I designed a custom PCB using **EasyEDA**, starting with basic layouts and gradually refining the design. Here’s was my general process:
+
+1. **Component Planning**: Ensured all connections aligned with ESP32-compatible pins.
+2. **Iterative Design**: Tested and updated connections to avoid GPIO pin conflicts.
+3. **Routing**: Optimized the layout to maintain neat and efficient connections.
+
+![Early and final PCB design image.](https://i.imgur.com/APAqsZR.png)
+
+![Later iteration](https://i.imgur.com/tqPZseA.png)
+
+Unfortunately, I made a crucial error here, making use of a pin that could not be used as a standard GPIO pin under certain conditions and so I had to go back and quickly revise this final design one last time.
+
+![Final PCB design](https://i.imgur.com/OH7aRO1.png)
+
+The final PCB looked pretty good in my opinion, the many different colours of the outlines represented the layer on which each component would be. This is similar to how photoshop works, here, pink was the outline, yellow was the silk layer, and red and blue were the first and second layer respectively.
+
+### **Final Design**
+
+The final design could then be viewed in 3D and I had it printed and shipped over!
+
+![3D model](https://i.imgur.com/4oeRUur.png)
+
+![Final in person](https://i.imgur.com/K11xQSO.png)
+
+---
+
+### **Building the Physical Keyboard**
+
+1. **3D-Printed Case & Keycaps**: Designed and printed the case and translucent keycaps to house all components.
+2. **Soldering Components**: Carefully soldered the LEDs, display, and mechanical switches onto the PCB.
+3. **Assembly**: Wired the LED strips, mounted the ESP32, and secured everything within the case.
+
+---
+
+## **Software Implementation**
+
+My code for this project was decently long and so to describe and explain the general idea, I've split it into 3 distinct parts.
+
+### **Simple Definitions File**
+
+I started by defining all constants, credentials, and bitmaps in a separate file. This file contained:
+
+- **Wi-Fi credentials** for the ESP32 to connect to the network.
+- **API Server Certs** for fetching song data and album art.
+- **Pin Definitions** for buttons, LEDs, and the OLED display.
+- **Bitmaps** for OLED display icons and progress bar.
+
+```cpp
+const String PASSWORD = "REDACTED";
+const char SSID[] = "REDACTED";
+const char SSID_PASS[] = "REDACTED";
+const char *benzServerCert =
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw\n"
+    // This part keeps on going for a while
+    "emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n"
+    "-----END CERTIFICATE-----";
+#define RGB_PIN 18
+// ... This also goes on for a while
+#define SDA 21
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+const unsigned char wifi_2[] PROGMEM = {
+    0xff, 0xff, 0xff, 0xff, 0xf0, 0x0f, 0xc1, 0x83, 0x9f, 0xf1, 0x38,
+    0x1c, 0xe1, 0x87, 0xcf, 0xf3, 0xd8, 0x1b, 0xf1, 0x8f, 0xf3, 0xcf,
+    0xfe, 0x7f, 0xfc, 0x3f, 0xfe, 0x7f, 0xff, 0xff, 0xff, 0xff};
+
+```
+
+### **Core ESP32 Program**
+
+The main program handled button inputs, display updates, and API requests. It included:
+
+- **Button Handling**: Detecting button presses and debouncing inputs.
+- **LED Control**: Updating LED colors based on album art.
+- **Display Updates**: Parsing JSON data and updating the OLED display.
+
+#### **Imports**
+
+But to start, I simply imported all necessary libraries, which included:
+
+```cpp
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <FastLED.h>
+#include <SMBCredentials.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <Wire.h>
+```
+
+#### **Global Variables**
+
+Next I defined many variables and pieces of data that I would need access to later.
+
+```cpp
+WiFiClientSecure wifiClient;
+TwoWire I2C = TwoWire(0);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &I2C, OLED_RESET);
+const int keys[7] = {SHUFFLE, VOLUME_DEC, VOLUME_INC, LOOP,
+                     BACK,    PAUSE_PLAY, SKIP};
+bool keyPrevState[7] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH};
+bool keyState[7] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH};
+const unsigned long RSSIDelay = 10000;
+const unsigned long currentDelay = 5000;
+const unsigned long timeDelay = 1000;
+const unsigned long fadeDelay = 4;
+unsigned long nextRSSICheck, nextCurrentCheck, nextTimeCheck, nextFade;
+String title, artist, album, color, durationRaw, progressRaw, pausedRaw,
+    volumeRaw, lastTitle;
+int progress, duration, volume, lastVolume;
+bool paused;
+int rssi = 0;
+CRGB LEDs[RGB_LED_NUM];
+int red, blue;
+int green = 255;
+bool shouldFade = false;
+int prevRed, prevGreen, prevBlue;
+int step;
+```
+
+#### **Setup Function**
+
+Then, for each pin that I had defined earlier, I set them up as inputs or outputs, I set some pins to pull up to avoid floating values. I also made sure to setup the LED strip and the OLED display.
+
+I added a delay to allow the display to initialize and then I checked if the display was initialized correctly, if not, I set all the LEDs to a bright orange and then entered an infinite loop to show that something was wrong.
+
+```cpp
+// The setup function contents
+for (int i = 0; i < 7; i++) {
+    pinMode(keys[i], INPUT_PULLUP);
+}
+pinMode(LED, OUTPUT);
+pinMode(SCL, INPUT_PULLUP);
+pinMode(SDA, INPUT_PULLUP);
+delay(2000);
+FastLED.addLeds<CHIP_SET, LED, COLOR_CODE>(LEDs, RGB_LED_NUM);
+FastLED.setBrightness(BRIGHTNESS);
+FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
+for (int i = 0; i < RGB_LED_NUM; i++) LEDs[i] = CRGB::White;
+FastLED.show();
+I2C.begin(SDA, SCL, 400000);
+if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    for (int i = 0; i < RGB_LED_NUM; i++) {
+        LEDs[i] = CRGB::OrangeRed;
+    }
+    FastLED.show();
+    for (;;) {
+        ;
+    }
+}
+delay(2000);
+display.clearDisplay();
+```
+
+I then finally moved onto connecting to the WiFi network, this process does take a bit of time and doesn't always work and so I made a loop to try and connect to the network 20 times before giving up and showing a red LED. During this time, it would also show a breathing effect on the LEDs to indicate it was attempting a connection.
+Once connected to the network, I would then fade the LEDs from white to green to indicate a successful connection.
+
+To ensure a smooth transition, I modelled a sinusoidal wave in the form of y = asin(bx + c) + d, where a, b, c, and d are constants. This allowed me to smoothly transition between colors with a being the amplitude (110), b being the frequency, c being the phase shift (none), and d being the vertical shift (140). Calculating the frequency was less of a concern so I just ballparked that.
+
+```cpp
+WiFi.mode(WIFI_STA);
+WiFi.begin(SSID, SSID_PASS);
+while (WiFi.status() != WL_CONNECTED) {
+    for (int times = 0; times < 20; times++) {
+        for (int i = 0; i < RGB_LED_NUM; i++) {
+            byte brightness = 140 + 110 * sin(millis() / 250.0);
+            LEDs[i] = CRGB::White;
+            LEDs[i].fadeToBlackBy(255 - brightness);
+        }
+        delay(25);
+        FastLED.show();
+    }
+}
+for (int step = 0; step < 256; step++) {
+    for (int i = 0; i < RGB_LED_NUM; i++) {
+        LEDs[i] = blend(CRGB::White, CRGB::Green, step);
+    }
+    delay(3);
+    FastLED.show();
+}
+wifiClient.setCACert(benzServerCert);
+```
+
+![Sinusoidal wave](https://i.imgur.com/8Nl7eTL.png)
+
+#### **Updating the Display**
+
+This function was simply meant to update the display with the current song, artist, and progress. It would also update the progress bar and the volume icon. This took a lot of trial and error but eventually, I got it to work. I also got to learn a bit about RSSI and how to use it to determine the strength of the WiFi signal.
+
+```cpp
+display.setCursor(0, 0);
+display.setTextColor(WHITE);
+display.setTextWrap(false);
+display.setTextSize(2);
+for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 16; j++) {
+        display.drawPixel(i, j, WHITE);
+    }
+}
+for (int i = 2; i < 18; i++) {
+    for (int j = 0; j < 16; j++) {
+        display.drawPixel(i, j, BLACK);
+    }
+}
+for (int i = 18; i < 64; i++) {
+    for (int j = 0; j < 16; j++) {
+        display.drawPixel(i, j, WHITE);
+    }
+}
+if (rssi == 0) {
+    display.drawBitmap(2, 0, wifi_0, 16, 16, WHITE);
+} else if (rssi < -70) {
+    display.drawBitmap(2, 0, wifi_1, 16, 16, WHITE);
+} else {
+    display.drawBitmap(2, 0, wifi_2, 16, 16, WHITE);
+}
+for (int i = 64; i < 108; i++) {
+    for (int j = 0; j < 16; j++) {
+        display.drawPixel(i, j, WHITE);
+    }
+}
+for (int i = 108; i < 124; i++) {
+    for (int j = 0; j < 16; j++) {
+        display.drawPixel(i, j, BLACK);
+    }
+}
+if (volume > 66) {
+    display.drawBitmap(108, 0, volume_3, 16, 16, WHITE);
+} else if (volume > 33) {
+    display.drawBitmap(108, 0, volume_2, 16, 16, WHITE);
+} else if (volume > 0) {
+    display.drawBitmap(108, 0, volume_1, 16, 16, WHITE);
+} else {
+    display.drawBitmap(108, 0, volume_0, 16, 16, WHITE);
+}
+for (int i = 124; i < 128; i++) {
+    for (int j = 0; j < 16; j++) {
+        display.drawPixel(i, j, WHITE);
+    }
+}
+display.display();
+```
+
+#### **Extract Value Function**
+This function is a bit more complex but its simply meant to extract a value from a JSON string given a key. I had to make this since other libraries accounted for a lot of things I wouldn't need to, and they also took up too much memory, and runtime.
+
+```cpp
+void extractValue(const String& key, const String& json, String& result) {
+    String quoteKey = "\"" + key + "\":";
+    int start = json.indexOf(quoteKey);
+    if (start != -1) {
+        int end = json.indexOf(",", start + quoteKey.length());
+        if (end == -1) {
+            end = json.indexOf("}", start + quoteKey.length());
+        }
+        result = json.substring(start + quoteKey.length(), end);
+        result.trim();
+        result.remove(0, 1);
+        result.remove(result.length() - 1);
+    }
+}
+```
+
+![Sample JSON](https://i.imgur.com/pgDyMuo.png)
+
+#### **Update State Function**
+This function is meant to update the state of the music player, it would send a GET request to the server with the action and subaction, if any. It would then wait for a response and then update the state of the music player accordingly.
+
+I made this go through my own server so I don't have to create another connection to Spotify's servers while also only making use of GET requests to keep things simple (the routes usually require GET, PUT, or POST).
+
+```cpp
+void updateState(char action, int subAction = 0) {
+    String actionString = "";
+    if (action == 'p') {
+        actionString = "playPause";
+    } else if (action == 'b') {
+        actionString = "back";
+    } else if (action == 's') {
+        actionString = "skip";
+    } else if (action == 'r') {
+        actionString = "loop";
+    } else if (action == 'v') {
+        if (subAction == 0) {
+            actionString = "vdec";
+        } else {
+            actionString = "vinc";
+        }
+    } else if (action == 'l') {
+        actionString = "loop";
+    } else if (action == 'f') {
+        actionString = "shuffle";
+    }
+    if (!wifiClient.connected()) {
+        if (!wifiClient.connect("benzhou.tech", 443)) {
+            for (int i = 0; i < RGB_LED_NUM; i++) LEDs[i] = CRGB::Red;
+            FastLED.show();
+            return;
+        }
+        yield();
+    }
+    wifiClient.print("GET /api/manageState/" + PASSWORD + "/" + actionString +
+                        " HTTP/1.1\r\n" + "Host: benzhou.tech\r\n" +
+                        "Connection: Keep-Alive\r\n\r\n");
+    wifiClient.flush();
+}
+```
+
+#### **Update Current Function**
+This function is meant to ensure the current connection is being maintained and if not, attempt to reconnect. I made sure to include an error state where the LEDs would turn yellow if the connection was lost.
+
+Afterwards, I would send a GET request to the server to get the current song and its details. I would then parse the JSON data and update the display accordingly.
+
+The final part of this function is simply checking if the new song is different from the last song, if it is, then I would update the display with the new song and artist.
+
+It is quite long and tedious, but simple in principle.
+
+```cpp
+if (!wifiClient.connected()) {
+    if (!wifiClient.connect("benzhou.tech", 443)) {
+        for (int i = 0; i < RGB_LED_NUM; i++) LEDs[i] = CRGB::Red;
+        FastLED.show();
+        return;
+    }
+    yield();
+}
+wifiClient.print("GET /api/getCurrent/" + PASSWORD + " HTTP/1.1\r\n" +
+                    "Host: benzhou.tech\r\n" +
+                    "Connection: Keep-Alive\r\n\r\n");
+unsigned long timeout = millis();
+while (!wifiClient.available()) {
+    if (millis() - timeout > 5000) {
+        for (int i = 0; i < RGB_LED_NUM; i++) LEDs[i] = CRGB::Yellow;
+        FastLED.show();
+        return;
+    }
+}
+yield();
+char endOfHeaders[] = "\r\n\r\n";
+if (!wifiClient.find(endOfHeaders)) {
+    for (int i = 0; i < RGB_LED_NUM; i++) LEDs[i] = CRGB::Orange;
+    FastLED.show();
+    return;
+}
+wifiClient.find("{\"ti");
+String response = "{\"ti";
+while (wifiClient.available()) {
+    char c = wifiClient.read();
+    response += c;
+}
+wifiClient.flush();
+lastTitle = title;
+extractValue("title", response, title);
+extractValue("artist", response, artist);
+extractValue("album", response, album);
+extractValue("duration", response, durationRaw);
+extractValue("progress", response, progressRaw);
+extractValue("paused", response, pausedRaw);
+extractValue("volume", response, volumeRaw);
+paused = pausedRaw == "true";
+lastVolume = volume;
+volume = volumeRaw.toInt();
+duration = durationRaw.toInt();
+progress = progressRaw.toInt();
+if (title != lastTitle) {
+    color = response.substring(response.indexOf("[") + 1,
+                                response.indexOf("]"));
+    int comma1 = color.indexOf(",");
+    int comma2 = color.indexOf(",", comma1 + 1);
+    shouldFade = true;
+    prevRed = red;
+    prevGreen = green;
+    prevBlue = blue;
+    red = color.substring(0, comma1 + 1).toInt();
+    green = color.substring(comma1 + 1, comma2 + 1).toInt();
+    blue = color.substring(comma2 + 1, color.length()).toInt();
+    display.setTextColor(WHITE);
+    display.setTextWrap(false);
+    display.clearDisplay();
+    updateScreen();
+    display.setCursor(0, 16);
+    display.setTextSize(2);
+    display.println(title);
+    display.setTextSize(1);
+    display.println(artist);
+}
+display.display();
+```
+
+#### **Fade LED Function**
+This function is meant to fade the LEDs from one color to another, it would do this by calculating the difference between the current color and the target color and then incrementing or decrementing the current color by a small amount.
+
+```cpp
+bool fadeLED() {
+    if (step > 255) {
+        step = 0;
+        return false;
+    }
+    for (int i = 0; i < RGB_LED_NUM; i++) {
+        LEDs[i] = blend(CRGB(prevRed, prevGreen, prevBlue),
+                        CRGB(red, green, blue), step);
+    }
+    FastLED.show();
+    step += 1;
+    return true;
+}
+```
+
+#### **Update Time Function**
+This function is meant to update the progress bar on the display, it would do this by calculating the percentage of the song that has been played and then updating the progress bar accordingly. It's also a simple function in principle, though it took a bit of time to get the correct logic and math.
+
+```cpp
+void updateTime(int total, int current) {
+    display.fillRect(0, 48, 128, 16, BLACK);
+    if (current > total) {
+        current = total;
+    }
+    int barWidth = 100;
+    int barHeight = 6;
+    int barX = 14;
+    int barY = 56;
+    display.drawRect(barX, barY, barWidth, barHeight, WHITE);
+    if (total <= 0) {
+        total = 1;
+    }
+    int percent = (100 * current) / total;
+    int progressWidth = (barWidth * percent) / 100;
+    display.fillRect(barX, barY, progressWidth, barHeight, WHITE);
+    int currentMinutes = current / 60;
+    int currentSeconds = current % 60;
+    int totalMinutes = total / 60;
+    int totalSeconds = total % 60;
+    display.setTextSize(1);
+    display.setCursor(32, 48);
+    display.print(currentMinutes);
+    display.print(":");
+    if (currentSeconds < 10) display.print("0");
+    display.print(currentSeconds);
+    display.print("/");
+    display.print(totalMinutes);
+    display.print(":");
+    if (totalSeconds < 10) display.print("0");
+    display.println(totalSeconds);
+    display.display();
+}
+```
+
+#### **State functions**
+This part was also quite tedious, but simply put, if we define a function callable for each button, we can then call the updateState function with the appropriate action and subaction.
+
+```cpp
+void shuffle() { updateState('f'); }
+void volumeDecrease() {
+    updateState('v', 0);
+    updateScreen();
+}
+void volumeIncrease() {
+    updateState('v', 1);
+    updateScreen();
+}
+void repeat() { updateState('r'); }
+void back() {
+    updateState('b');
+    nextCurrentCheck = millis() + 100;
+}
+void pausePlay() {
+    updateState('p');
+    nextCurrentCheck = millis() + 100;
+}
+void skip() {
+    updateState('s');
+    nextCurrentCheck = millis() + 100;
+    updateCurrent();
+}
+void (*funcs[7])() = {
+    shuffle, volumeDecrease, volumeIncrease, repeat, back, pausePlay, skip};
+```
+
+This on its own doesn't actually do anything but thats where the magical loop function comes in.
+
+#### **Loop Function**
+The loop function continuously runs for the entirety of the program, it checks for button presses and then calls the appropriate function. It also checks if the current song has changed and if so, updates the display accordingly as well as a bunch of other small checks.
+
+```cpp
+for (int i = 0; i < 7; i++) {
+    keyState[i] = digitalRead(keys[i]);
+    if (keyState[i] == LOW && keyPrevState[i] == HIGH) {
+        funcs[i]();
+    }
+    keyPrevState[i] = keyState[i];
+}
+if (millis() > nextRSSICheck) {
+    nextRSSICheck = millis() + RSSIDelay;
+    rssi = WiFi.RSSI();
+    updateScreen();
+}
+if (millis() > nextCurrentCheck) {
+    nextCurrentCheck = millis() + currentDelay;
+    updateCurrent();
+}
+if (millis() > nextTimeCheck) {
+    nextTimeCheck = millis() + timeDelay;
+    updateTime(duration, progress);
+    if (!paused) {
+        progress++;
+    }
+}
+if (shouldFade && millis() > nextFade) {
+    nextFade = millis() + fadeDelay;
+    shouldFade = fadeLED();
+}
+```
+
+### **REST API for Offloading Heavy Tasks**
+
+The ESP32 alone couldn't handle image processing for album art. To solve this, I developed a custom **REST API** hosted on my server. The API:
+
+1. Extracts the dominant color from album artwork.
+2. Returns clean JSON data for the ESP32 to process.
+3. Handles playback states like shuffle, repeat, and volume control.
+
+This approach offloaded heavy computation to a more capable server, allowing the ESP32 to focus on display and LED control.
+
+My API itself can also be split into 3 separate routes along with a utility route.
+
+#### **Get Color**
+This route is meant to get the dominant color of the album art, it would do this by fetching the album art from Spotify's servers and then processing it to get the dominant color.
+
+```ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { getColorFromURL } from "color-thief-node";
+
+type Data = {
+    answer: number[];
+};
+
+function findNearestColor(rgbArray: number[]): number[] {
+    const colors: number[][] = [
+        [255, 0, 0],
+        [255, 125, 0],
+        [255, 255, 0],
+        [125, 255, 0],
+        [0, 255, 0],
+        [0, 255, 125],
+        [0, 255, 255],
+        [0, 125, 255],
+        [0, 0, 255],
+        [125, 0, 255],
+        [255, 0, 255],
+        [255, 0, 125],
+    ];
+
+    let minDistance: number = Infinity;
+    let closestColor: number[] = [];
+    colors.forEach((color: number[]) => {
+        const distance: number = Math.sqrt(
+            Math.pow(rgbArray[0] - color[0], 2) +
+                Math.pow(rgbArray[1] - color[1], 2) +
+                Math.pow(rgbArray[2] - color[2], 2)
+        );
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestColor = color;
+        }
+    });
+    return closestColor;
+}
+
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse<Data>
+) {
+    const hash = req.query.hash as string;
+    const url = `https://i.scdn.co/image/${hash}`;
+    let colors = await getColorFromURL(url);
+    const color = findNearestColor(colors);
+    res.status(200).json({ answer: color });
+}
+```
+
+This accomplishes with a simple formula of root(r^2 + g^2 + b^2) to get the distance between two colors, once this formula is applied to all colors, the closest clean color is returned.
+
+#### **Get Current**
+This route is meant to get the current song and its details, it would do this by fetching the current song from Spotify's servers and then parsing the JSON data to get the song, artist, album, duration, progress, paused, and volume.
+
+```ts
+import { NextApiRequest, NextApiResponse } from "next";
+import getSpotifyAccessToken from "@/utils/functions/getSpotify";
+type ESPInfo = {
+    title: string;
+    artist: string;
+    album: string;
+    color: [number, number, number];
+    duration: string;
+    progress: string;
+    paused: string;
+    volume: string;
+    shuffle: boolean;
+    loop: string;
+}
+type Error = {
+    error: string;
+}
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse<ESPInfo | Error>
+) {
+    const { password } = req.query;
+    if (password !== process.env.PASSWORD) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+    }
+    try {
+        const accessToken = await getSpotifyAccessToken();
+        const response = await fetch(
+            `https://api.spotify.com/v1/me/player`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            }
+        );
+        if (response.ok) {
+            const current = await response.json();
+            const dominantColor = await fetch(`https://bzhou.ca/api/getColor/${current.item.album.images[0].url.split("/")[4]}`).then(res => res.json());
+            console.log(current);
+            res.status(200).json({
+                title: current.item.name,
+                artist: current.item.artists[0].name,
+                album: current.item.album.name,
+                color: dominantColor.answer,
+                duration: String(Math.round(current.item.duration_ms / 1000)),
+                progress: String(Math.round(current.progress_ms / 1000)),
+                paused: String(!current.is_playing),
+                volume: String(current.device.volume_percent),
+                shuffle: current.shuffle_state,
+                loop: current.repeat_state
+            });
+        } else {
+            const errorMessage = await response.text();
+            res.status(response.status).json({ error: errorMessage });
+        }
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+        console.log(error);
+    }
+}
+```
+
+This function is a bit more complex but its simply meant to extract all the values I need and return them appropriately.
+
+#### **Manage State**
+This route is meant to manage the state of the music player, it would do this by sending a POST/PUT request to Spotify's servers with the appropriate action and subaction.
+
+```ts
+import { NextApiRequest, NextApiResponse } from "next";
+import getSpotifyAccessToken from "@/utils/functions/getSpotify";
+type ESPInfo = {
+    answer: string;
+};
+type Error = {
+    error: string;
+};
+const changes = ["playPause", "skip", "back", "vinc", "vdec", "loop", "shuffle"];
+
+async function getPlayerData(res: NextApiResponse, accessToken: string) {
+    const response = await fetch(
+        `https://api.spotify.com/v1/me/player`,
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        }
+    );
+    if (response.ok) {
+        const responseData = await response.json();
+        return responseData;
+    }
+    else {
+        res.status(response.status).json({
+            error: "Error fetching player status",
+        });
+        return;
+    }
+}
+
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse<ESPInfo | Error>
+) {
+    const { password, change } = req.query;
+    if (password !== process.env.PASSWORD) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+    }
+    if (!changes.includes(change as string)) {
+        res.status(400).json({ error: "Invalid change" });
+        return;
+        }
+    try {
+        const accessToken = await getSpotifyAccessToken();
+        let url = "";
+        let metho = "";
+        if (change === "playPause") {
+            const responseData = await getPlayerData(res, accessToken);
+            if (!responseData.is_playing) {
+                url = "https://api.spotify.com/v1/me/player/play";
+                metho = "PUT";
+            } else {
+                url = "https://api.spotify.com/v1/me/player/pause";
+                metho = "PUT";
+            }
+        } else if (change === "skip") {
+            url = `https://api.spotify.com/v1/me/player/next`;
+            metho = "POST";
+        } else if (change === "back") {
+            url = `https://api.spotify.com/v1/me/player/previous`;
+            metho = "POST";
+        }
+        else if (change === "vinc" || change === "vdec") {
+            const responseData = await getPlayerData(res, accessToken);
+            let volume = responseData.device.volume_percent;
+            if (change === "vinc") {
+                volume += 10;
+                volume = Math.min(volume, 100);
+            } else {
+                volume -= 10;
+                volume = Math.max(volume, 0);
+            }
+            url = `https://api.spotify.com/v1/me/player/volume?volume_percent=${volume}`;
+            metho = "PUT";
+        } else if (change === "loop") {
+            const responseData = await getPlayerData(res, accessToken);
+            let state = responseData.repeat_state;
+            if (state === "track") {
+                state = "context";
+            } else if (state === "context") {
+                state = "off";
+            } else {
+                state = "track";
+            }
+            url = `https://api.spotify.com/v1/me/player/repeat?state=${state}`;
+            metho = "PUT"
+        } else if (change === "shuffle") {
+            const responseData = await getPlayerData(res, accessToken);
+            let shuffle = responseData.shuffle_state;
+            url = `https://api.spotify.com/v1/me/player/shuffle?state=${!shuffle}`;
+            metho = "PUT";
+        }
+
+        await fetch(url, {
+            method: metho,
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        res.status(200).json({ answer: "Success" });
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+        console.log(error);
+    }
+}
+```
+
+This part was a bit more complex than it might've seemed initially primarily since I had to account for the different states of the music player and the different actions that could be taken. Simply put, you cannot just tell spotify to loop or unloop or move onto the next state. You have to explicitly tell it to loop the song, loop the playlist, or not loop at all. Similar logic follows for the shuffle state. Therefore I just opted to have it sort of rotate through similar to how the app does it.
+
+#### **Spotify Access Token**
+This utility route is meant to get the access token for Spotify, it would do this by sending a POST request to Spotify's servers with the appropriate credentials and then parsing the JSON data to get the access token. I need this since access tokens actually expire after a certain amount of time and so this just helps me get the correct credentials forever.
+
+```ts
+let accessToken = "";
+let tokenExpiration = 0;
+
+export default async function getSpotifyAccessToken() {
+    const { SPOTIFY_CLIENTID, SPOTIFY_SECRET, SPOTIFY_REFRESHTOKEN } =
+        process.env;
+
+    if (Date.now() < tokenExpiration) {
+        return accessToken;
+    }
+
+    const authString = Buffer.from(
+        `${SPOTIFY_CLIENTID}:${SPOTIFY_SECRET}`
+    ).toString("base64");
+
+    const tokenResponse = await fetch(
+        "https://accounts.spotify.com/api/token",
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Basic ${authString}`,
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+                grant_type: "refresh_token",
+                refresh_token: SPOTIFY_REFRESHTOKEN || "",
+            }),
+        }
+    );
+
+    const tokenData = await tokenResponse.json();
+
+    accessToken = tokenData.access_token;
+    tokenExpiration = Date.now() + tokenData.expires_in * 1000;
+
+    return accessToken;
+};
+```
+
+## **Conclusion**
+In conclusion, I had a really fun time creating this project especially since I was able to combine a lot of my knowledge in programming as well as hardware to create a semi-useful project... I decided to specifically write about this project since it was one of the major reasons I decided to pursue a degree in computer engineering and I thought it would be a good way to show off some of my skills.
+
+![Final Product](https://i.imgur.com/VzZgObq.jpeg)
