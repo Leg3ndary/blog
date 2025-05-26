@@ -1,0 +1,696 @@
+---
+title: "bTagscript Guide"
+description: "A guide to using and writing bTagscript."
+tags: "tagscript, guide"
+---
+
+# Getting Started with Tagscript: A Beginner's Guide
+
+Welcome to the world of Tagscript! If you're looking to customize Carl-bot's responses and create powerful automated tasks, you're in the right place. Tagscript might seem a bit different from other scripting languages, but with this guide, you'll grasp the basics and be on your way to crafting your own tags in no time. Let's dive in!
+
+## The Anatomy of Blocks: The Building Blocks of Tagscript
+
+At its core, Tagscript revolves around "blocks." A block is anything enclosed in curly brackets: `{ }`.
+
+> **Warning:** Carl-bot will always evaluate brackets. This means you **cannot** have a literal `{` or `}` character inside any block's content, name, or parameters. There's no way to bypass this.
+
+### Block Names
+Every block must have a name, which appears immediately after the opening `{`. This name dictates how the block processes any information you give it.
+
+Some examples include:
+`{user}`
+`{command}`
+`{let}`
+
+> **Note:** There's a niche exception for variables where you can define a "blank" variable like `{=():}`. If this looks confusing, don't worry about it for now; it's an advanced concept.
+
+The name of the block determines how its parameters and payload are evaluated.
+
+### Parameters and Payloads
+
+Many blocks can take **parameters** and/or a **payload** to modify their behavior or the data they work with.
+
+**Parameters**
+Parameters are defined right after the block name, enclosed in parentheses `()`. They allow you to alter how the block works or what specific piece of information it should fetch.
+
+Examples:
+`{user(PARAMETERS)}`
+`{command(PARAMETERS)}`
+`{let(PARAMETERS)}`
+
+> **Warning:** Similar to blocks themselves, you cannot have literal `(` or `)` characters within parameters.
+
+**Payloads**
+The payload is the main data or text that a block will use or alter. It's defined after the block name using a colon `:`. If parameters are present, the payload comes after the parameters.
+
+Examples:
+`{user(PARAMETERS):PAYLOAD}`
+`{command:PAYLOAD}`
+
+> **Note:** Payloads *may* contain colons `:`.
+
+> **Note:** When working with conditional blocks like `{if}`, `{or}`, or `{and}`, you might not be able to use vertical pipes `|` directly within the payload text, as pipes are used to separate "then" and "else" conditions.
+
+Parameters and payloads can be optional, depending on the block. This means all the following are potentially valid with the right blocks:
+`{block(PARAMETERS)}`
+`{block:PAYLOAD}`
+`{block(PARAMETERS):PAYLOAD}`
+`{block}`
+
+**Examples in Action:**
+
+* `{user(avatar)}`
+    * Block name: `user`
+    * Parameter: `avatar`
+    * This block would fetch the user's avatar URL.
+
+* `{command:lock server}`
+    * Block name: `command`
+    * Payload: `lock server`
+    * This block would execute the Carl-bot command "lock server".
+
+* `{let(tagscript):cool}`
+    * Block name: `let`
+    * Parameter: `tagscript` (this is the variable name being defined)
+    * Payload: `cool` (this is the value assigned to the variable `tagscript`)
+
+> **Important:** Familiarizing yourself with this basic anatomy is crucial. It will help you avoid common errors and is essential for understanding more advanced concepts like blanks and switches later on.
+
+## Default Variables: Information at Your Fingertips
+
+Every tag you create has access to a set of predefined variables.
+
+### `{unix}`
+Returns the current Unix timestamp (seconds since January 1, 1970, UTC).
+This is often used with `{strf}` (for formatting dates/times) and `{timedelta}` (for time differences).
+
+> **Note:** To use this outside of tags (e.g., in some specific Carl-bot configurations), you might need to add `{=(unix):{strf:%s}}` at the top of your code to define it.
+
+> **Warning:** This variable is exclusive to tags.
+
+### `{uses}`
+Returns the number of times your tag has been used.
+
+> **Warning:** This variable is exclusive to tags.
+
+> **Warning:** The counter increments even if the tag fails to output or encounters an error. The only way to reset this count is to delete and re-import the tag.
+
+### `{mention}`
+Mentions the user who invoked the tag (e.g., @Username).
+
+> **Note:** This is the same as using `{user(mention)}`.
+
+### `{args}` / `{message}`: Capturing User Input
+These are arguably some of the most important blocks in Tagscript. They allow you to access what a user types after invoking your tag command.
+
+If a user types `?yourtagname foo bar baz`:
+* `{args}` will output `foo bar baz`.
+* `{message}` will also output `foo bar baz`.
+
+> **Note:** If used in a trigger (an automated response to keywords), `{args}`/`{message}` will contain the entire message that triggered it, including the trigger invocation itself.
+
+You'll often need to parse this block to get specific pieces of information. We'll cover parsing later!
+
+**Digit Shorthands: `{1}`, `{2}`, `{3}`, etc.**
+The main difference between `{args}` and `{message}` lies in digit shorthands.
+* `{1}` is equivalent to the first word of `{message}`.
+* `{2}` is equivalent to the second word of `{message}`.
+* ...and so on.
+
+Using `{args(1)}` (which we'll see in Variable Parsing) is generally equivalent to `{1}` if `{message}` hasn't been changed. Digit shorthands are based on the content of the `{message}` variable. If you redefine `{message}`, these shorthands will refer to the new content.
+
+> **Note:** Don't worry too much if digit shorthands are confusing. They aren't used very often. It's much more common to see `{args(1)}` or `{args(2)}` for accessing specific arguments.
+
+## Discord Objects: Interacting with Discord Information
+
+Tagscript provides default variables to access information about users, the server, and channels.
+
+### User / Target: `{user}` & `{target}`
+These are frequently used blocks.
+* `{user}` always refers to the user who invoked the tag.
+* `{target}` refers to the *first user mentioned (pinged)* in the arguments of the command.
+* If no one is mentioned in the arguments, `{target}` becomes equivalent to `{user}`.
+
+> **Note:** A common task is to check if a user was mentioned. You can do this by comparing their IDs:
+> `{if({user(id)}=={target(id)}):You need to mention someone!|You mentioned {target}!}`
+
+**Parameters/Properties for `{user}` and `{target}`**
+You can get specific details about a user or target by providing a parameter: `{user(PARAMETER)}`. If you use `{user}` or `{target}` without any parameter, it defaults to outputting the user's nickname (or username if no nickname is set).
+
+| Parameter    | Output                                                              |
+| :----------- | :------------------------------------------------------------------ |
+| `avatar`     | A link to the user’s avatar.                                        |
+| `icon`       | Same as `avatar`.                                                   |
+| `id`         | The user’s unique ID.                                               |
+| `mention`    | Mentions the user (e.g., @Username).                                |
+| `created_at` | Date and time the account was created (format: `yyyy-mm-dd HH:MM:SS`). |
+| `joined_at`  | Date and time the user joined the current server (format: `yyyy-mm-dd HH:MM:SS`). |
+| `color`      | The user’s highest role color in hexadecimal (e.g., `#3498db`).     |
+| `name`       | The user’s Discord username (e.g., `Carl`).                         |
+| `proper`     | The user’s username + discriminator (e.g., `Carl#0001`).            |
+| `roleids`    | A space-separated list of all role IDs the user has.                |
+| `position`   | The user’s position in the role hierarchy (0 for @everyone).        |
+
+### Server: `{server}`
+This block contains details about the server where the tag is used.
+Using `{server}` without a parameter outputs the server's name.
+To get specific server details, use `{server(PARAMETER)}`.
+
+> **Warning:** Some server parameters are deprecated or broken.
+
+| Parameter        | Output                                                              | Status        |
+| :--------------- | :------------------------------------------------------------------ | :------------ |
+| `icon`           | A link to the server’s icon.                                        |               |
+| `id`             | The server’s ID.                                                    |               |
+| `owner`          | The username + discriminator of the server owner.                   |               |
+| `random`         | The username + discriminator of a random member.                    |               |
+| `members`        | The number of members in the server.                                |               |
+| `roles`          | The number of roles in the server.                                  |               |
+| `channels`       | The number of channels in the server.                               |               |
+| `created_at`     | When the server was created (format: `yyyy-mm-dd HH:MM:SS`).        |               |
+| `humans`         | The number of humans in the server.                                 | **[BROKEN]** |
+| `randomonline`   | The username + discriminator of a random online member.             | **[DEPRECATED]**|
+| `randomoffline`  | The username + discriminator of a random offline member.            | **[DEPRECATED]**|
+| `bots`           | The number of bots in the server.                                   | **[DEPRECATED]**|
+
+### Channel: `{channel}`
+This block contains details about the channel where the tag is used.
+Using `{channel}` without a parameter outputs the channel's name.
+To get specific channel details, use `{channel(PARAMETER)}`.
+
+| Parameter | Output                                                      |
+| :-------- | :---------------------------------------------------------- |
+| `id`      | The channel’s ID.                                           |
+| `topic`   | The channel’s topic.                                        |
+| `slowmode`| The channel’s slowmode delay in seconds.                    |
+| `position`| The channel’s position in the channel list.                 |
+| `mention` | A clickable link to the channel (e.g., #general).           |
+
+## Meta Blocks: Controlling Tag Behavior
+
+Meta blocks change the overall behavior of your tag, like where it replies or if it deletes the command.
+
+* **`{delete}` / `{del}`:** Deletes the message that invoked the command.
+* **`{silent}` / `{silence}`:** Silences any output from command blocks (`{c}`, `{cmd}`, `{command}`). The tag will still produce its text output, but Carl-bot commands run via `{c}` won't post their usual confirmation messages.
+* **`{override}`:** Attempts to override permission checks for commands executed by the tag.
+    > **Danger:** Use this with extreme caution, as it can bypass necessary restrictions.
+    > **Warning:** This still respects Discord's role hierarchy. For example, Carl-bot (or a user) cannot use this to manage roles higher than its own.
+* **`{dm}`:** Sends the tag's output as a direct message (DM) to the user who invoked the tag.
+    > **Note:** This will *only* DM the person who used the tag, never anyone else.
+* **`{redirect:channel_id}`:** Sends the tag's output to a different channel, specified by its ID.
+    > **Warning:** The user invoking the tag must have `Send Messages` permission in the target channel, or you can add an `{override}` block to the tag.
+
+### `{require}` / `{blacklist}`: Managing Access
+These blocks control who can use a tag and where.
+
+> **Important:** It is *strongly* recommended to use Role IDs and Channel IDs instead of names. Names can change, breaking your tag, while IDs are permanent.
+
+* **`{require(Optional Error Message):Required RoleIDs/ChannelIDs}`**
+    Allows the tag to be used only if the user has AT LEAST ONE of the specified roles AND (if channels are also listed) is in AT LEAST ONE of the specified channels.
+* **`{blacklist(Optional Error Message):Blacklisted RoleIDs/ChannelIDs}`**
+    Prevents the tag from being used if the user has ANY of the specified roles OR (if channels are also listed) is in ANY of the specified channels.
+
+**Syntax:**
+Separate multiple Role IDs or Channel IDs with a comma `,` and NO SPACES.
+Example: `{require:roleID1,roleID2,channelID1}`
+
+**Parameters (Optional Error Message):**
+The text in the parentheses `()` is an optional error message shown if the conditions aren't met.
+`{require(You aren't a moderator, or you aren't using this in the right channel):209797471608635392,465563733981265921}`
+
+> **Note:** This error message parameter is optional. You can do `{require:209797471608635392}`.
+
+> **Warning:** If you omit the error message, Carl-bot will react with a ⚠️ emoji instead. To avoid this and show no message, make the error message a single space: `{require( ):209797471608635392}`.
+
+> **Warning:** `{require}` and `{blacklist}` are exclusive to tags.
+
+**Payload (ID List):**
+This is a comma-separated list of role or channel IDs.
+`{require(You aren't a moderator!):ID_LIST_OF_ROLES}`
+`{require(You can't use this command here!):ID_LIST_OF_CHANNELS}`
+
+You can mix role and channel IDs. For `{require}`, the user must satisfy at least one listed role (if roles are provided) AND be in at least one listed channel (if channels are provided). For `{blacklist}`, if they match any role or any channel, access is denied.
+
+> **Important:** For `{blacklist}`, you can blacklist the server ID itself to completely disable the tag in that server, often used to prevent an embed from posting under certain server-wide conditions.
+
+### `{react}` / `{reactu}`: Adding Reactions
+* **`{react:EMOJI LIST}`:** Reacts to the message Carl-bot sends as the tag's output.
+* **`{reactu:EMOJI LIST}`:** Reacts to the user's message that invoked the tag.
+
+**Payload (EMOJI LIST):**
+A list of emojis separated by spaces. For custom Discord emojis, you might need to escape them (e.g., `\:custom_emoji:`) and then copy the resulting text.
+
+> **Attention:**
+> * In tags: 1 reaction limit (free), 5 reactions (premium).
+> * In triggers: 3 reactions limit (free), 5 reactions (premium) - *subject to confirmation*.
+
+## `{command}` Block: Executing Carl-bot Commands
+Aliases: `{c}`, `{cmd}`
+
+This block allows your tag to execute Carl-bot commands.
+`{c:COMMAND_TO_RUN}`
+`{command:ban {target(id)} Spamming}`
+
+> **Note:** Servers are limited to **one** command block per tag. Premium servers can use up to **three**.
+
+**Payload:**
+The payload is the actual Carl-bot command you want to run, including its arguments.
+`{c:mute {target(id)} 1h Reason for mute}`
+
+> **Tip:** You can create simple aliases for existing commands. For example, a tag named `silentkick` with the content `{c:kick {args}} {silent}` would create a `?silentkick` command.
+
+> **Warning:** Tags cannot run reaction role commands (e.g., `rr add`) or other tag management commands (e.g., `tag add`).
+
+> **Caution:** If you want to conditionally run a command block, you'll need to use a technique called "blanks," which we'll discuss later. Simply putting `{c:command}` inside an `{if}` block won't work as expected.
+
+## Control Blocks: Making Decisions
+
+Control blocks allow your tag to behave differently based on conditions. Think of it like: "If X is true, do Y, otherwise do Z."
+
+Consider: *If I am hungry, I will eat. If not, I will drink some water.*
+In Tagscript, this translates to:
+`{if(I==hungry):Eat|Drink}`
+
+> **Note:** This is pseudo-code! `I==hungry` will always be false
+
+### Boolean Operators (Parameters for `{if}`)
+These are used within the `(CONDITION)` part of an `{if}` block to compare values.
+
+| Operator | Meaning                     | Example                           | Result (if true) |
+| :------- | :-------------------------- | :-------------------------------- | :--------------- |
+| `==`     | Equal to (case-sensitive)   | `\{if(carl==carl):true|false}`     | `true`           |
+| `!=`     | Not equal to                | `\{if(carl!=bot):true|false}`      | `true`           |
+| `>`      | Greater than                | `\{if(5>1):true|false}`          | `true`           |
+| `<`      | Less than                   | `\{if(1\<5):true|false}`          | `true`           |
+| `>=`     | Greater than or equal to    | `\{if(5>=5):true|false}`         | `true`           |
+| `<=`     | Less than or equal to       | `\{if(5\<=5):true|false}`         | `true`           |
+
+> **Tip:** A very common use case is checking if a user was mentioned in the command:
+> `{if({user(id)}=={target(id)}):You need to ping someone!|You pinged {target}!}`
+> If no one is pinged, `{user(id)}` will be the same as `{target(id)}`.
+
+### Then/Else (Payload for Conditional Blocks)
+The payload of a conditional block has two parts, separated by a pipe `|`:
+`{if(CONDITION):THEN_PART|ELSE_PART}`
+
+* `THEN_PART`: Output if the condition is true.
+* `ELSE_PART`: Output if the condition is false.
+You can omit the `ELSE_PART` (and the `|`) if you only want something to happen when the condition is true: `{if(CONDITION):THEN_PART}`
+
+Examples:
+`{if({user(id)}==235148962103951360):Hello, Carl-bot creator!|Hello, user!}`
+`{if({uses}>10):This tag has been used more than 10 times!|This tag has been used {uses} times.}`
+
+### `{if(CONDITION):THEN|ELSE}`
+The simplest conditional block. It checks a single condition.
+
+### `{any(CONDITION1|CONDITION2|CONDITION3):THEN|ELSE}`
+Checks if *any* of the provided conditions are true. Conditions are separated by `|`.
+Example: `{any({channel}==bots|{channel}==testing):Valid channel|Please use #bots or #testing.}`
+
+### `{all(CONDITION1|CONDITION2|CONDITION3):THEN|ELSE}`
+Similar to `{any}`, but checks if *all* provided conditions are true. Conditions are separated by `|`.
+Example: `{all({target(id)}!=null|{user(id)}!={target(id)}):User mentioned someone else.|Mention someone or don't mention yourself.}`
+
+### `{break(CONDITION):THEN}`
+If the `CONDITION` is true, the tag's text output will **only** be what's in the `THEN` part of the `{break}` block. Any text or blocks that come *after* the `{break}` block in your tag code will be ignored.
+
+> **Danger:** `{break}` will **not** prevent `{command}` blocks from running or an embed (from the embed builder) from sending. It only affects the tag's textual output.
+
+## Data Storage/Variables: Remembering Information (Temporarily)
+
+Variables allow you to store and reuse pieces of data *within a single invocation of a tag*.
+
+> **Note:** Tags cannot store data persistently between different uses or by different users through regular means. For more persistent storage, you will need to explore more advanced topics such as making requests through images.
+
+**Defining Variables:**
+There are several ways to define a variable, but `{=(NAME):CONTENT}` is common:
+`{=(variable_name):Variable's content}`
+`{=(user_greeting):Hello {user(name)}!}`
+`{let(fav_food):Pizza}`
+`{var(count):0}`
+`{assign(status):Online}`
+
+**Calling Variables:**
+To use a variable's content, simply put its name in curly brackets:
+`{variable_name}` -> Outputs: `Variable's content`
+`{user_greeting}` -> Outputs: `Hello Username!` (assuming `Username` is the user's name)
+
+> **Warning:** You cannot name variables the same as existing block names (e.g., you can't name a variable `user` because `{user}` is already a default variable).
+
+## Parsing Text: Extracting and Manipulating Strings
+
+Parsing is crucial for extracting specific parts of text, often from user input (`{args}`) or variables.
+
+> **Note:** While you can parse almost anything, avoid using these methods for date/time strings. Use `{strf}` blocks for that.
+
+### Variable Parsing
+You can extract "elements" (words or segments) from variables (including `{args}` and `{message}`) and specify a "delimiter" (the character that separates elements).
+
+**Syntax:** `{VariableName(Elements):Delimiter}`
+
+* **Calling the variable:** `{my_var}`
+* **Getting the first "word" (space as delimiter):** `{my_var(1)}`
+    Example: If `{=(test_var):Carl-bot is the best bot!}`, then `{test_var(1)}` outputs `Carl-bot`.
+* **Getting the first part up to a specific delimiter:** `{my_var(1):!}`
+    Example: If `{=(test_var):Carl-bot is the best bot! His favorite food is subway!}`, then `{test_var(1):!}` outputs `Carl-bot is the best bot`.
+
+This also works with `{args}`: `{args(1)}` gives the first word of user input.
+
+**Elements:**
+Elements control which parts and how many parts of the string are returned. Delimiter is space by default.
+
+* `{test_var(4)}`: Returns the 4th element. (e.g., `best` from `Carl-bot is the best bot!`)
+* `{test_var(0)}`: Returns the *last* element.
+* `{test_var(-2)}`: Returns the second-to-last element.
+* `{test_var(+3)}`: Returns everything *up to* the 3rd element (inclusive of the 3rd element's delimiter if not the end). More precisely, it's the first 3 elements.
+* `{test_var(7+)}`: Returns everything *from* the 7th element onwards.
+
+**Delimiters:**
+The delimiter is the character used to split the string. If not specified, it's a space.
+`{test_var(ELEMENT_NUMBER):DELIMITER_CHARACTER}`
+
+Example: `{=(test_var):data1;data2;data3}`
+`{test_var(2):;}` would output `data2`.
+
+> **Note:** Delimiters are most often used to get specific parts of structured text, like a URL's domain.
+> Example for `https://readthedocs.org/dashboard/`:
+> `{=(url):https://readthedocs.org/dashboard/}`
+> `{=(url_part):{url(2)://}}` (*gets `readthedocs.org/dashboard/`*)
+> `{=(domain):{url_part(1):/}}` (*gets `readthedocs.org` from `url_part`*)
+> `{domain}` would output `readthedocs.org`.
+
+> **Warning:** Just specifying a delimiter without an element index, like `{test_var::}`, won't do anything on its own. You need to specify which element(s) you want.
+
+### `{list(INDEX):element1,element2,element3}` or `{list(INDEX):element1~element2~element3}`
+Returns the element at the specified `INDEX` from a comma-separated or tilde-separated list.
+* If the `INDEX` is out of bounds (e.g., asking for the 10th item in a 3-item list), `{list}` returns nothing (an empty string).
+* You can use `,` or `~` as separators. If both are present in the list, `~` takes precedence.
+
+### `{cycle(INDEX):element1,element2,element3}` or `{cycle(INDEX):element1~element2~element3}`
+Works like `{list}`, but if the `INDEX` is out of bounds, it "cycles" back around.
+Example: `{cycle(5):A,B,C}` (Index 5 in a 3-item list starting at 0)
+0=A, 1=B, 2=C, 3=A, 4=B, **5=C**. So it would output `C`.
+
+**Index for `{list}` and `{cycle}`:**
+* Indexes start at `0` (the first element is index `0`, second is `1`, etc.).
+* You can use negative numbers: `-1` is the last element, `-2` is the second-to-last, etc.
+* You can only parse one element at a time with these blocks.
+
+Examples:
+`{list(-1):elem1~elem2~elem3~elem4}` -> `elem4`
+`{list(1):elem1~elem2~elem3~elem4}` -> `elem2`
+`{cycle(5):elem1~elem2~elem3~elem4}` (4 elements, index 0-3) -> `elem2` (0->1, 1->2, 2->3, 3->4, 4->1, 5->2)
+`{cycle(-6):elem1~elem2~elem3~elem4}` -> `elem3`
+
+### `{index(ELEMENT_TO_FIND):element1,element2,element3}`
+Returns the numerical index (position) of the first occurrence of `ELEMENT_TO_FIND` within the list.
+* List items are separated by `,` or `~` (tilde takes precedence).
+* If the element is not found, it returns `-1`.
+* Indexes start at `0`.
+
+Examples:
+`{index(elem2):elem1~elem2~elem3~elem4}` -> `1`
+`{index(elem5):elem1~elem2~elem3~elem4}` -> `-1`
+
+### Membership Testing: `{in()}` & `{contains()}`
+These blocks check if a piece of text or a list contains a certain string or element. They return `true` or `false`.
+
+* **`{in(STRING_TO_FIND):TEXT_TO_SEARCH_IN}`:** Checks if `STRING_TO_FIND` exists *anywhere* within `TEXT_TO_SEARCH_IN` (substring match).
+* **`{contains(ELEMENT_TO_FIND):LIST_OF_ELEMENTS}`:** Checks if `ELEMENT_TO_FIND` is an exact match to one of the space-separated elements in `LIST_OF_ELEMENTS` (whole word match).
+
+Examples:
+`{in(cool):Carl-bot is cool!}` -> `true`
+`{contains(cool):Carl-bot is cool!}` -> `false` (because "cool!" is not "cool")
+`{contains(cool):Carl-bot is cool !}` -> `true` (assuming space is delimiter)
+
+`{in(efg):abcdefghijklmnop}` -> `true`
+`{contains(efg):abc def ghi jklmnop}` -> `true` (if space is delimiter)
+`{contains(efg):abcdefghijklmnop}` -> `false` (treats the whole thing as one element)
+
+`{in(Carl):Carl bot}` -> `true`
+`{contains(Carl):Carl bot}` -> `true`
+
+> **Attention:** Everything in Tagscript, including `{in}` and `{contains}`, is **case-sensitive**.
+> `{in(carl):Carl bot}` -> `true` (because `{in}` does substring matching, and it doesn't care about word boundaries for its case-insensitivity for matching)
+
+Corrected example based on case-sensitivity rule:
+`{in(carl):Carl bot}` -> `false` (unless you use `{lower}` like `{in(carl):{lower:Carl bot}}` which becomes `{in(carl):carl bot}` -> `true`)
+`{contains(carl):Carl bot}` -> `false` (and `{contains(carl):{lower:Carl bot}}` would also be false because `carl` is not `carl bot`)
+
+## Embed Blocks: Customizing Rich Messages
+
+The `{embed}` block allows you to set values for the different parts of a Discord embed that can be sent with your tag. You'll typically design the basic embed structure in Carl-bot's embed builder.
+
+**Syntax:** `{embed(EMBED_PARAMETER):VALUE}`
+
+Examples:
+`{embed(title):My Awesome Embed}`
+`{embed(description):This is a really cool embed created with Tagscript!}`
+`{embed(color):#FF00FF}`
+`{embed(timestamp):now}` (The only valid payload for timestamp is `now`)
+
+> **Attention:** You **MUST** have some content, anywhere, in the embed builder for Carl-bot. If the embed builder is completely empty, the tag will not send the embed, even if you use `{embed}` blocks.
+
+**Common Embed Parameters:**
+
+| EMBED PARAMETER | Sets the...                 | Example Value           |
+| :-------------- | :-------------------------- | :---------------------- |
+| `title`         | Embed title                 | `Server News`           |
+| `url`           | URL for the title (makes title a hyperlink) | `https://example.com` |
+| `description`   | Main text content of the embed | `Here is an update...`  |
+| `color`         | Embed's side color          | `#3498db` (hex color)   |
+| `timestamp`     | Embed's timestamp           | `now`                   |
+*(There are more parameters for fields, author, footer, image, thumbnail, etc. which you can usually set in the embed builder and then potentially modify with tags if needed for dynamic content).*
+
+## Text Manipulation Blocks
+
+These blocks help you change or format text.
+
+### `{ord:INTEGER}`: Ordinal Abbreviation
+Returns the ordinal abbreviation for an integer.
+`{ord:1}` -> `1st`
+`{ord:22}` -> `22nd`
+`{ord:37}` -> `37th` (Source says `3th`, likely a typo, should be `37th`)
+`{ord:456}` -> `456th`
+
+> **Note:** If you don't supply a valid integer (e.g., text, decimals, commas), this block will return an error like `<ord error>`.
+
+### Case Blocks: `{lower}` & `{upper}`
+* **`{lower:TEXT}`:** Converts all characters in `TEXT` to lowercase.
+    `{lower:Whoozard is a Wizard}` -> `whoozard is a wizard`
+* **`{upper:TEXT}`:** Converts all characters in `TEXT` to uppercase.
+    `{upper:carl-bot best bot}` -> `CARL-BOT BEST BOT`
+
+These are very useful for making comparisons case-insensitive (e.g., `{if({lower:{args(1)}}==admin):...}`).
+
+### Text Replacement Blocks
+
+* **`{join(JOINING_STRING):TEXT_WITH_SPACES}`:** Replaces all spaces in `TEXT_WITH_SPACES` with `JOINING_STRING`.
+    `{join(_):Carl-bot is cool}` -> `Carl-bot_is_cool`
+    (Equivalent to `{replace( ,JOINING_STRING):TEXT_WITH_SPACES}`)
+
+* **`{replace(STRING_TO_REPLACE,REPLACEMENT_STRING):TEXT}`:** Replaces all occurrences of `STRING_TO_REPLACE` with `REPLACEMENT_STRING` within `TEXT`.
+    `{replace(l-bot,w-bot):Carl-bot is cool}` -> `Carw-bot is cool`
+    To add spaces between characters: `{replace(, ):Carl-bot is cool}` -> `C a r l - b o t  i s  c o o l` (This specific example from source might be tricky if the "find" string is empty. Typically, you'd replace something with something else including a space). A clearer way to space out would be character by character if a block for that existed, or more complex parsing. The example seems to show replacing "nothing" (empty first parameter) with a space, which is unusual. A more standard use is replacing existing characters. Let's assume it means replacing a known character or string.
+    *Correction based on common replace functionality: If the intent is to insert spaces, it's usually done by replacing existing delimiters or by more complex parsing if not just replacing spaces themselves.*
+    The example `{replace(, ):TEXT}` might mean "replace empty strings between characters with a space," which is highly specialized. A safer bet is replacing known characters: `{replace(-, ):Carl-bot is cool}` -> `Carl bot is cool`.
+
+    > **Note:** Because the comma `,` is used to separate `STRING_TO_REPLACE` and `REPLACEMENT_STRING`, you cannot directly replace literal commas using this block.
+
+* **`{urlencode(OPTIONAL_SPACE_ENCODING):URL_OR_TEXT}`:** Encodes text into URL-friendly percent-encoding.
+    `{urlencode:Hey there, how are you?}` -> `Hey%20there%2C%20how%20are%20you%3F`
+    If you provide `+` as the `OPTIONAL_SPACE_ENCODING` parameter, spaces will be encoded as `+` instead of `%20`.
+    `{urlencode(+):Hey there, how are you?}` -> `Hey+there%2C+how+are+you%3F`
+
+## Math Blocks: Crunching Numbers
+Aliases: `{m}`, `{calc}`, `{+}` (though `{+}` usually implies just addition, the source shows it as a general math block alias).
+
+These blocks evaluate mathematical expressions. The payload is the equation. Standard order of operations (PEMDAS/BODMAS) is followed.
+`{math:9+10}` -> `19`
+`{calc:365-5}` -> `360`
+`{m:12*10}` -> `120`
+`{+:14/7}` -> `2`
+
+**Basic Functions and Operators:**
+
+| Function/Operator | Explanation    |
+| :---------------- | :------------- |
+| `x+y`             | Addition       |
+| `x-y`             | Subtraction    |
+| `x*y`             | Multiplication |
+| `x/y`             | Division       |
+| `x%y`             | Modulo (remainder) |
+| `x^y`             | Exponent (x to the power of y) |
+| `abs(x)`          | Absolute value |
+| `round(x)`        | Rounds to the nearest whole number |
+| `trunc(x)`        | Truncation (removes decimal part) |
+
+**Advanced Functions, Operators, and Variables:**
+
+| Function/Operator/Var | Explanation                         |
+| :-------------------- | :---------------------------------- |
+| `sin(x)`              | Sine (x in radians)                 |
+| `cos(x)`              | Cosine (x in radians)               |
+| `tan(x)`              | Tangent (x in radians)              |
+| `exp(x)`              | Euler's number ($e$) to the power of x |
+| `sgn(x)`              | Sign of a number (1 if positive, -1 if negative, 0 if zero) |
+| `log(x)`              | Logarithm (base 10)                 |
+| `ln(x)`               | Natural Logarithm (base $e$)        |
+| `log2(x)`             | Logarithm with base 2               |
+| `pi` / `PI`           | Replaced with the value of $\pi$      |
+| `e` / `E`             | Replaced with Euler's number $e$      |
+
+> **Warning:** When calculating very long or complex equations, Carl-bot might occasionally "hiccup" and output the entire equation string instead of the result. There's not much you can do about this if it happens.
+
+## Random Number Generators
+
+### `{random}`, `{rand}`, `{#}`: Picking from a List
+These blocks pick a random element from a list you provide.
+* `{random(OPTIONAL_SEED):Element1,Element2,AnotherElement}`
+* `{rand(OPTIONAL_SEED):Element1~Element2~AnotherElement}`
+* `{#(OPTIONAL_SEED):4|WeightedChoice,2|OtherChoice,SimpleChoice}` (Weighted list)
+
+**Optional Seeding:**
+If you provide a `SEED` (any text or number), the choice will be consistent for the same seed and the same list of elements. This can be useful for generating predictable "randomness."
+
+**Weighting (using `{#}`):**
+You can give elements different chances of being picked.
+`{#:4|Carl,2|bot}` is like having a list `Carl,Carl,Carl,Carl,bot,bot`. Carl has a 4 out of 6 chance.
+`{#:4|Lose,Win}` means a 4/5 chance to get "Lose" and a 1/5 chance to get "Win" (Win has an implicit weight of 1).
+
+### `{range}` & `{rangef}`: Generating Random Numbers in a Span
+* **`{range(OPTIONAL_SEED):LOWER-HIGHER}`:** Generates a random *integer* between `LOWER` and `HIGHER` (inclusive).
+    `{range:1-100}` -> a random whole number from 1 to 100.
+* **`{rangef(OPTIONAL_SEED):LOWER-HIGHER}`:** Generates a random number *with a single decimal place* between `LOWER` and `HIGHER` (inclusive).
+    `{rangef:0-1}` -> a random number like 0.0, 0.1, ..., 0.9, 1.0.
+
+Seeds work the same way as in the `{random}` block.
+
+### `{5050}` (or `{50}`, `{?}`): A Coin Flip
+`{5050:OPTION_TEXT}`
+This block has a 50% chance of outputting `OPTION_TEXT` and a 50% chance of outputting nothing.
+
+## Time Blocks: Working with Dates and Times
+
+### `{strf(OPTIONAL_DATETIME_OR_UNIX):STRF_FORMAT_CODE}`
+This powerful block formats date and time information into a human-readable string.
+* `OPTIONAL_DATETIME_OR_UNIX`: You can provide a datetime string (like `YYYY-MM-DD HH:MM:SS`) or a Unix timestamp. If omitted, it defaults to the current time.
+* `STRF_FORMAT_CODE`: A special code that defines the output format (e.g., `%Y` for year, `%m` for month, `%A` for full weekday name).
+
+Examples:
+`December 31st 1999 was a {strf(1999-12-31 23:59:59):%A}` -> `December 31st 1999 was a Friday`
+`The current time is {strf:%-I:%M %p}` -> `The current time is 2:19 AM` (example, actual time will vary)
+`Your account was created on {strf({user(created_at)}):%x}` -> `Your account was created on 12/24/15` (for Carl-bot's account, using `%x` for locale's appropriate date representation)
+
+> **Note:** For a full list of STRF codes, check online resources for `strftime` codes (they are standard across many programming languages).
+> Some useful codes:
+> * `%Y-%m-%d %H:%M:%S` (common database format) or the shorthand `%F %T`.
+> * `%FT%TZ` (with a literal Z or appropriate offset) can be useful for ISO 8601 format, sometimes needed for embed timestamps if setting them manually in JSON.
+
+### `{td(OPTIONAL_DATETIME_OR_UNIX):FUTURE_DATETIME_STRING}`: Time Delta
+Calculates and outputs a human-readable time difference *from* the `OPTIONAL_DATETIME_OR_UNIX` (or current time if omitted) *until* the `FUTURE_DATETIME_STRING`.
+
+Example:
+If today is 2023-11-25:
+`{td:2024-01-01 00:00:00}` -> might output something like `1 month, 6 days, and some hours` (time until New Year's Day 2024).
+
+A more complex example showing calculation within:
+`{td({m:trunc({unix}-3600)}):{strf:%Y-%m-%d %H.%M.%S}}`
+This calculates the timedelta from one hour ago (`{unix}-3600`) until the current time. The output would effectively be "1 hour". (Note: the example in the source has the parameters reversed for a typical "time until" scenario. It should be `{td(PAST_TIME):FUTURE_TIME}` or `{td:FUTURE_TIME}` (from now)).
+If `td` shows time *until* a future date, then `{td(START_TIME):END_TIME}` calculates duration from START to END. If only one argument is given, it's `END_TIME` from `now`.
+`{td:2020-01-01 00.00.00}` (as of 2019-11-25) -> `1 month, 5 days and 21 hours`.
+
+## Understanding Blanks: The Key to Conditional Actions
+
+This is often considered one of the trickiest concepts in Tagscript, but it's essential for conditionally running blocks that have side effects (like sending messages or running commands).
+
+**The Problem:**
+Tagscript evaluates many blocks, especially "action" blocks like `{c:command}`, `{dm}`, `{delete}`, etc., *as soon as it sees them*, regardless of whether they are inside an `{if}` statement's "then" or "else" part that doesn't get chosen.
+
+So, this **will NOT work as expected**:
+`{if({args}==kick member):{c:kick {target(id)}}}`
+The `{c:kick {target(id)}}` block will attempt to run **every time** the tag is used, even if `{args}` is not "kick member".
+
+**The Solution: Two-Step Evaluation**
+The trick is to make the conditional block output the *text* of the action block, and then have Tagscript evaluate that resulting text.
+
+1.  **Remove the inner brackets from the action block:**
+    Inside your conditional, write the action block *without* its curly brackets.
+    `{if({args}==kick member):c:kick {target(id)}}`
+    If the condition is true, this `{if}` block will now output the literal string: `c:kick {target(id)}`
+
+2.  **Add curly brackets around the *entire* conditional block:**
+    Now, wrap the whole `{if}` statement (which produces the string) in another set of curly brackets.
+    `{{if({args}==kick member):c:kick {target(id)}}}`
+    Here's what happens:
+    * The inner `{if(...):...}` evaluates.
+    * If the condition (`{args}==kick member`) is true, it outputs the string `c:kick {target(id)}`.
+    * The outer `{ }` then take this string and evaluate *it* as a Tagscript block. So, `{c:kick {target(id)}}` is finally executed as a command.
+    * If the condition is false, the inner `{if}` might output nothing (if there's no `|else` part) or an alternative string. If it outputs nothing, the outer `{ }` become `{}`, which is usually an error or empty output.
+
+3.  **Handling the "Else" / False Condition (Using `{=():}` for clean blanks):**
+    If the condition in your `{{if...}}` is false, you don't want it to output a half-formed block or an error. You want it to output *nothing*. This is where an empty variable definition `{=():}` comes in handy, often used as the "else" part or as a preceding statement.
+
+    A common pattern:
+    `{{if({args}==send dm):dm|{=():}}}`
+    If `{args}` is "send dm", the inner `if` outputs `dm`. The outer `{}` make this `{dm}`.
+    If `{args}` is not "send dm", the inner `if` outputs the result of `{=():}`, which is essentially an empty string (it defines a variable with no name and no content, effectively outputting nothing). The outer `{}` then evaluate this empty string, resulting in no action.
+    `{=():}{{if(=={args}):dm}}` is a more concise way:
+    It seems to imply that if the `if` condition `(=={args})` (is args empty?) is false, the `{{...}}` part results in nothing that can be processed as a command, and the preceding `{=():}` ensures that if nothing else useful is generated, the final output for this segment is blank rather than a malformed block.
+    The core idea is: `{{if(condition):action_block_as_text|way_to_output_nothing}}`.
+
+**Blocks that usually require this "blanking" technique for conditional execution:**
+`{dm}`, `{redirect}`, `{require}`, `{blacklist}`, `{delete}`, `{silent}`, `{override}`, `{command}` (`{c}`), and generally any block that performs an action rather than just returning text.
+
+It's a shift in thinking: you're not directly running the command conditionally; you're conditionally *writing the text of the command* which then gets run.
+
+## Switches: Efficient Multi-Choice Logic with Variables
+
+Imagine you want to output a different URL based on a user's input, say, one of 16 personality types. You *could* use a long chain of `{if}` statements:
+`{if({1}==ENFJ):url1|{if({1}==ISTP):url2|{if(...):...|Oops}}}`
+This gets very messy and hard to debug. Switches, using variable mechanics, offer a cleaner way.
+
+Here's Raffael's explanation condensed:
+
+1.  **Standardize Input (Optional but Recommended):**
+    Get the user's input (e.g., the first argument) and convert it to a consistent format, like uppercase.
+    `{=(u1):{upper:{1}}}` (*Now `{u1}` holds the uppercase version of the first argument.*)
+
+2.  **Set a Default/Error Message Variable:**
+    Define a variable *whose name is the content of your standardized input variable (`{u1}`)*. The value of this variable will be your error message.
+    `{=({u1}):Your input did not match one of the 16 Myers-Briggs Personality Types.}`
+    *If `{u1}` was "INVALID", this line effectively does `{=(INVALID):Error message...}`.*
+
+3.  **Define Variables for Each Valid Choice:**
+    For each valid keyword (e.g., "ENFJ", "ISTP"), define a variable with that keyword as its name, and the desired output as its value.
+    `{=(url_base):https://www.verywellmind.com/}`
+    `{=(ENFJ):{url_base}enfj-extraverted-intuitive-feeling-judging-2795979}`
+    `{=(ENFP):{url_base}enfp-an-overview-of-the-champion-personality-type-2795980}`
+    `{=(ISTP):{url_base}istp-introverted-sensing-thinking-perceiving-2795993}`
+    *...and so on for all 16 types.*
+
+4.  **Call the Input as a Variable:**
+    Finally, use double curly brackets to call the variable whose name is stored in `{u1}`:
+    `{{u1}}`
+
+**How it Works:**
+* Let's say the user types `?mytag ENFJ`.
+    1.  `{=(u1):{upper:ENFJ}}` sets `{u1}` to `ENFJ`.
+    2.  `{=({u1}):Error...}` becomes `{=(ENFJ):Error...}`. So, initially, the variable named `ENFJ` holds the error message.
+    3.  Later, the line `{=(ENFJ):{url_base}enfj...}` is encountered. This *redefines* the variable named `ENFJ` to now hold the specific URL for ENFJ. The previous error message content for the variable `ENFJ` is overwritten.
+    4.  `{{u1}}` becomes `{{ENFJ}}`, which evaluates to `{ENFJ}`, which outputs the URL.
+
+* Now, let's say the user types `?mytag XYZ`.
+    1.  `{=(u1):{upper:XYZ}}` sets `{u1}` to `XYZ`.
+    2.  `{=({u1}):Error...}` becomes `{=(XYZ):Error...}`. The variable `XYZ` now holds the error message.
+    3.  None of the specific personality type definitions (`{=(ENFJ):...}`, `{=(ISTP):...}`) match `XYZ`. So, the variable `XYZ` is never overwritten with a URL.
+    4.  `{{u1}}` becomes `{{XYZ}}`, which evaluates to `{XYZ}`, which outputs the error message we defined in step 2.
+
+This technique is much cleaner and more scalable than nested `{if}` statements for "switch-case" like behavior.
+
+## Conclusion
+
+This guide has covered the fundamental aspects of Tagscript, from the basic anatomy of blocks to more advanced techniques like blanks and switches. The real learning comes from practice, so try experimenting with these blocks, build simple tags, and gradually increase their complexity.
+
+Don't be afraid to consult Carl-bot's documentation or community for more examples and help. Happy scripting!
